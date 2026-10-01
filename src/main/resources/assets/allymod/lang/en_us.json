@@ -22,6 +22,11 @@
 
   "allymod.command.reload.done": "MyAllay's: reloaded %s relations.",
 
+  "allymod.command.usage.snzsojusz": "Alliance: %s players from config/snz-sojusz.json. Usage: /snzsojusz reload",
+  "allymod.command.sojusz.reload.done": "Alliance: loaded %s entries from snz-sojusz.json.",
+  "allymod.command.sojusz.reload.skipped": "Skipped %s invalid entries — see the log (latest.log).",
+  "allymod.command.sojusz.load_failed": "Failed to load the alliance file: %s. Keeping the previous list (%s entries).",
+
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " allies: %s",
   "allymod.command.info.enemies": " enemies: %s",
