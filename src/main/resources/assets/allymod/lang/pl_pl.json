@@ -22,6 +22,11 @@
 
   "allymod.command.reload.done": "MyAllay's: przeladowano %s relacji.",
 
+  "allymod.command.usage.snzsojusz": "Sojusz: %s graczy z config/snz-sojusz.json. Uzycie: /snzsojusz reload",
+  "allymod.command.sojusz.reload.done": "Sojusz: wczytano %s wpisow z snz-sojusz.json.",
+  "allymod.command.sojusz.reload.skipped": "Pominieto %s blednych wpisow — szczegoly w logu (latest.log).",
+  "allymod.command.sojusz.load_failed": "Nie udalo sie wczytac sojuszu: %s. Zostaje poprzednia lista (%s wpisow).",
+
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " sojusznicy: %s",
   "allymod.command.info.enemies": " wrogowie: %s",

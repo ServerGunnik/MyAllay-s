@@ -26,6 +26,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 import dev.servergunnik.allymod.Allymod;
 import dev.servergunnik.allymod.cache.RelationCache;
+import dev.servergunnik.allymod.data.AllianceStore;
 import dev.servergunnik.allymod.data.Relation;
 import dev.servergunnik.allymod.data.RelationKind;
 import dev.servergunnik.allymod.data.RelationStore;
@@ -40,6 +41,7 @@ public final class Commands {
 			registerRelationTree(dispatcher, "ally", RelationKind.ALLY, ChatFormatting.GREEN);
 			registerRelationTree(dispatcher, "enemy", RelationKind.ENEMY, ChatFormatting.RED);
 			registerAllymodTree(dispatcher);
+			registerSojuszTree(dispatcher);
 		});
 	}
 
@@ -73,6 +75,16 @@ public final class Commands {
 				.executes(ctx -> {
 					ctx.getSource().sendFeedback(Component.translatable("allymod.command.usage.allymod")
 							.withStyle(ChatFormatting.GRAY));
+					return 1;
+				}));
+	}
+
+	private static void registerSojuszTree(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+		dispatcher.register(literal("snzsojusz")
+				.then(literal("reload").executes(Commands::reloadSojusz))
+				.executes(ctx -> {
+					ctx.getSource().sendFeedback(Component.translatable("allymod.command.usage.snzsojusz",
+							Allymod.alliance().size()).withStyle(ChatFormatting.GRAY));
 					return 1;
 				}));
 	}
@@ -182,6 +194,25 @@ public final class Commands {
 		cache.rebuild();
 		ctx.getSource().sendFeedback(Component.translatable("allymod.command.reload.done", store.size())
 				.withStyle(ChatFormatting.AQUA));
+		return 1;
+	}
+
+	private static int reloadSojusz(CommandContext<FabricClientCommandSource> ctx) {
+		AllianceStore alliance = Allymod.alliance();
+		AllianceStore.LoadResult result;
+		try {
+			result = Allymod.reloadAlliance();
+		} catch (IOException e) {
+			ctx.getSource().sendError(Component.translatable("allymod.command.sojusz.load_failed",
+					e.getMessage(), alliance.size()));
+			return 0;
+		}
+		ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.done", result.loaded())
+				.withStyle(ChatFormatting.AQUA));
+		if (!result.warnings().isEmpty()) {
+			ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.skipped",
+					result.warnings().size()).withStyle(ChatFormatting.YELLOW));
+		}
 		return 1;
 	}
 

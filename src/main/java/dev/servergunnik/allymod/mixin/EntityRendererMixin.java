@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.entity.Entity;
@@ -25,7 +24,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import dev.servergunnik.allymod.Allymod;
 import dev.servergunnik.allymod.cache.RelationCache;
+import dev.servergunnik.allymod.data.AllianceEntry;
 import dev.servergunnik.allymod.data.RelationKind;
+import dev.servergunnik.allymod.render.AlliancePrefix;
 import dev.servergunnik.allymod.render.AllymodRenderState;
 import dev.servergunnik.allymod.render.RenderProfiler;
 
@@ -41,20 +42,26 @@ public abstract class EntityRendererMixin {
 
 	@Inject(method = "extractNameTags", at = @At("TAIL"))
 	private void allymod$colorName(Entity entity, EntityRenderState state, float partialTick, CallbackInfo ci) {
-		if (!(entity instanceof Player)) return;
-		RelationCache cache = Allymod.cache();
-		if (cache == null) return;
-		RelationCache.RenderStatus status = cache.statusOf(entity.getUUID());
-		if (status == null) return;
+		if (!(entity instanceof Player player)) return;
 		if (state.nameTag == null) return;
+		RelationCache cache = Allymod.cache();
+		RelationCache.RenderStatus status = cache == null ? null : cache.statusOf(entity.getUUID());
+		AllianceEntry member = AlliancePrefix.lookup(player.getGameProfile().name());
+		if (status == null && member == null) return;
 
 		long start = RenderProfiler.enabled ? System.nanoTime() : 0L;
-		TextColor color = TextColor.fromRgb(status.argb() & 0x00FFFFFF);
-		Style styled = state.nameTag.getStyle().withColor(color);
-		String tag = status.kind() == RelationKind.ALLY ? "[A] " : "[E] ";
-		MutableComponent labeled = Component.literal(tag).setStyle(styled)
-				.append(state.nameTag.copy().withStyle(styled));
-		state.nameTag = labeled;
+		Component name = state.nameTag;
+		if (status != null) {
+			TextColor color = TextColor.fromRgb(status.argb() & 0x00FFFFFF);
+			Style styled = name.getStyle().withColor(color);
+			String tag = status.kind() == RelationKind.ALLY ? "[A] " : "[E] ";
+			name = Component.literal(tag).setStyle(styled)
+					.append(name.copy().withStyle(styled));
+		}
+		if (member != null) {
+			name = AlliancePrefix.prepend(member, name);
+		}
+		state.nameTag = name;
 		if (RenderProfiler.enabled) RenderProfiler.recordNametag(System.nanoTime() - start);
 	}
 
