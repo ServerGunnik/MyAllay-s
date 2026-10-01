@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "dev.servergunnik.allymod.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"EntityRenderStateMixin",
+		"EntityRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
