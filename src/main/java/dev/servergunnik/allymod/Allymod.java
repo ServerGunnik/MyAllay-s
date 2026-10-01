@@ -42,21 +42,27 @@ public class Allymod implements ClientModInitializer {
 	}
 
 	/**
-	 * Wczytuje (ponownie) config/snz-sojusz.json i loguje pominiete wpisy.
-	 * Przy uszkodzonym pliku rzuca IOException — poprzednia lista zostaje.
+	 * Wczytuje (ponownie) wszystkie configi sojuszu z config/snz-sojusz/
+	 * i loguje pominiete wpisy oraz uszkodzone pliki.
 	 */
-	public static AllianceStore.LoadResult reloadAlliance() throws IOException {
+	public static AllianceStore.ReloadResult reloadAlliance() throws IOException {
 		try {
-			AllianceStore.LoadResult result = alliance.load();
-			for (String warning : result.warnings()) {
-				LOGGER.warn("{}: {}", alliance.file().getFileName(), warning);
+			AllianceStore.ReloadResult result = alliance.reload();
+			for (AllianceStore.ConfigInfo info : alliance.configs()) {
+				for (String warning : info.warnings()) {
+					LOGGER.warn("{}: {}", info.fileName(), warning);
+				}
+				if (!info.ok()) {
+					LOGGER.error("Nie udalo sie wczytac {}: {} — zostaje poprzednia wersja ({} graczy)",
+							info.fileName(), info.error(), info.players());
+				}
 			}
-			LOGGER.info("Sojusz wczytany — {} graczy z {} (pominieto {})",
-					result.loaded(), alliance.file(), result.warnings().size());
+			LOGGER.info("Sojusz wczytany — {} graczy z {} configow w {} (bledne pliki: {}, pominiete wpisy: {})",
+					result.players(), result.configs(), alliance.dir(), result.failed().size(), result.warnings());
 			return result;
 		} catch (IOException e) {
-			LOGGER.error("Nie udalo sie wczytac {} — zostaje poprzednia lista ({} graczy)",
-					alliance.file(), alliance.size(), e);
+			LOGGER.error("Nie udalo sie odczytac folderu {} — zostaje poprzednia lista ({} graczy)",
+					alliance.dir(), alliance.size(), e);
 			throw e;
 		}
 	}
@@ -74,11 +80,11 @@ public class Allymod implements ClientModInitializer {
 			LOGGER.error("Nie udalo sie wczytac {} — start z pusta lista", file, e);
 		}
 
-		alliance = new AllianceStore(FabricLoader.getInstance().getConfigDir().resolve("snz-sojusz.json"));
+		alliance = new AllianceStore(FabricLoader.getInstance().getConfigDir().resolve("snz-sojusz"));
 		try {
 			reloadAlliance();
 		} catch (IOException e) {
-			// juz zalogowane w reloadAlliance — gra startuje z pusta lista sojuszu
+			// juz zalogowane w reloadAlliance — gra startuje bez configow sojuszu
 		}
 
 		cache = new RelationCache(store);

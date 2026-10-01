@@ -22,10 +22,11 @@
 
   "allymod.command.reload.done": "MyAllay's: przeladowano %s relacji.",
 
-  "allymod.command.usage.snzsojusz": "Sojusz: %s graczy z config/snz-sojusz.json. Uzycie: /snzsojusz reload",
-  "allymod.command.sojusz.reload.done": "Sojusz: wczytano %s wpisow z snz-sojusz.json.",
+  "allymod.command.usage.snzsojusz": "Sojusz: %s graczy z %s configow (config/snz-sojusz/). Uzycie: /snzsojusz <gui|reload>",
+  "allymod.command.sojusz.reload.done": "Sojusz: wczytano %s graczy z %s configow.",
   "allymod.command.sojusz.reload.skipped": "Pominieto %s blednych wpisow — szczegoly w logu (latest.log).",
-  "allymod.command.sojusz.load_failed": "Nie udalo sie wczytac sojuszu: %s. Zostaje poprzednia lista (%s wpisow).",
+  "allymod.command.sojusz.config_failed": "Blad w %s: %s — zostala poprzednia wersja tego configu.",
+  "allymod.command.sojusz.load_failed": "Nie udalo sie odczytac folderu configow: %s. Zostaje poprzednia lista (%s graczy).",
 
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " sojusznicy: %s",
@@ -48,5 +49,30 @@
   "allymod.gui.manual_add_button": "Dodaj",
   "allymod.gui.stats": "%s sojusznikow, %s wrogow",
   "allymod.gui.list_empty": "(pusto)",
-  "allymod.gui.close": "Zamknij"
+  "allymod.gui.close": "Zamknij",
+
+  "allymod.gui.alliances": "Sojusze",
+  "allymod.alliance.gui.title": "Configi sojuszu",
+  "allymod.alliance.gui.summary": "%s graczy z %s configow",
+  "allymod.alliance.gui.empty": "Brak configow — kliknij \"Dodaj config\".",
+  "allymod.alliance.gui.players": "%s graczy",
+  "allymod.alliance.gui.error": "BLAD",
+  "allymod.alliance.gui.add": "Dodaj config",
+  "allymod.alliance.gui.reload": "Przeladuj",
+  "allymod.alliance.gui.folder": "Folder",
+  "allymod.alliance.gui.back": "Wroc",
+  "allymod.alliance.gui.drop_hint": "Mozesz tez przeciagnac pliki .json na okno gry.",
+  "allymod.alliance.gui.picker_title": "Wybierz configi sojuszu (.json)",
+  "allymod.alliance.gui.picker_filter": "Configi sojuszu (*.json)",
+  "allymod.alliance.gui.picker_open": "Wybierz plik(i) w oknie systemowym...",
+  "allymod.alliance.gui.picker_cancelled": "Nie wybrano pliku.",
+  "allymod.alliance.gui.picker_failed": "Okno wyboru pliku nie dziala — przeciagnij plik na okno gry albo uzyj \"Folder\".",
+  "allymod.alliance.gui.added": "Dodano %s config(ow). Razem %s graczy.",
+  "allymod.alliance.gui.add_failed": "Nie dodano %s plik(ow): %s",
+  "allymod.alliance.gui.reloaded": "Przeladowano: %s graczy z %s configow.",
+  "allymod.alliance.gui.reload_failed": "Blad w %s: %s (zostala poprzednia wersja)",
+  "allymod.alliance.gui.remove_title": "Usunac config sojuszu?",
+  "allymod.alliance.gui.remove_message": "Plik %s zostanie usuniety z folderu config/snz-sojusz.",
+  "allymod.alliance.gui.removed": "Usunieto %s.",
+  "allymod.alliance.gui.remove_failed": "Nie udalo sie usunac %s: %s"
 }

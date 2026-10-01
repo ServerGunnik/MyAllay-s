@@ -95,6 +95,12 @@ public final class ManageScreen extends Screen {
 				b -> manualAdd(RelationKind.ENEMY)
 		).bounds(panelX + 250, manualY, 80, 20).build());
 
+		// configi sojuszu (snz-sojusz)
+		addRenderableWidget(Button.builder(
+				Component.translatable("allymod.gui.alliances").withStyle(ChatFormatting.AQUA),
+				b -> Minecraft.getInstance().setScreenAndShow(new AllianceConfigsScreen(this))
+		).bounds(panelX + 10, panelY + PANEL_H - 25, 90, 20).build());
+
 		// close
 		addRenderableWidget(Button.builder(
 				Component.translatable("allymod.gui.close"),
