@@ -1,157 +1,161 @@
 package dev.servergunnik.allymod.data;
 
 import java.io.IOException;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 
 /**
- * Lista graczy sojuszu z config/snz-sojusz.json. Plik generuje bot Discord —
- * mod go tylko czyta (jedyny zapis to pusty "[]", gdy pliku nie ma).
+ * Configi sojuszu — dowolna liczba plikow *.json w jednym folderze
+ * (config/snz-sojusz/). Pliki dodaje sie z GUI moda; wszystkie sa scalane
+ * w jedna mape nick -> wpis. Gdy gracz jest w kilku configach, wygrywa
+ * config pierwszy alfabetycznie.
  */
 public final class AllianceStore {
-	public static final Pattern NICK_PATTERN = Pattern.compile("[A-Za-z0-9_]{3,16}");
 
-	public record LoadResult(int loaded, List<String> warnings) {}
-
-	private final Path file;
-	// Podmieniana w calosci po udanym wczytaniu — render thread zawsze widzi spojna mape.
-	private volatile Map<String, AllianceEntry> byNick = Map.of();
-
-	public AllianceStore(Path file) {
-		this.file = file;
+	/** Stan jednego configu do pokazania w GUI. error != null = ostatni odczyt sie nie udal. */
+	public record ConfigInfo(String fileName, int players, List<String> warnings, String error) {
+		public boolean ok() {
+			return error == null;
+		}
 	}
 
-	public Path file() {
-		return file;
+	public record ReloadResult(int players, int configs, List<ConfigInfo> failed, int warnings) {}
+
+	private final Path dir;
+	// Podmieniane w calosci po przeladowaniu — render thread zawsze widzi spojna mape.
+	private volatile Map<String, AllianceEntry> byNick = Map.of();
+	private volatile List<ConfigInfo> configs = List.of();
+	// Ostatnia udana wersja kazdego pliku — uszkodzony plik nie kasuje graczy z poprzedniego odczytu.
+	private final Map<String, AllianceFileParser.Parsed> lastGood = new HashMap<>();
+
+	public AllianceStore(Path dir) {
+		this.dir = dir;
+	}
+
+	public Path dir() {
+		return dir;
 	}
 
 	/**
-	 * Wczytuje plik. Przy uszkodzonym pliku rzuca IOException i zostawia
-	 * poprzednio wczytana liste. Bledne pojedyncze wpisy sa pomijane
-	 * i opisane w {@link LoadResult#warnings()}.
+	 * Wczytuje ponownie wszystkie configi z folderu (tworzy go, jesli go nie ma).
+	 * Rzuca IOException tylko, gdy nie da sie odczytac samego folderu — wtedy
+	 * zostaje poprzedni stan.
 	 */
-	public synchronized LoadResult load() throws IOException {
-		if (!Files.exists(file)) {
-			Path parent = file.getParent();
-			if (parent != null) Files.createDirectories(parent);
-			Files.writeString(file, "[]\n", StandardCharsets.UTF_8);
-			byNick = Map.of();
-			return new LoadResult(0, List.of());
-		}
+	public synchronized ReloadResult reload() throws IOException {
+		Files.createDirectories(dir);
+		List<Path> files = listConfigFiles();
 
-		String content;
-		try {
-			content = Files.readString(file, StandardCharsets.UTF_8);
-		} catch (CharacterCodingException e) {
-			throw new IOException(file.getFileName() + " nie jest zapisany w UTF-8", e);
-		}
-		if (!content.isEmpty() && content.charAt(0) == '﻿') content = content.substring(1);
+		Map<String, AllianceEntry> merged = new HashMap<>();
+		Map<String, String> ownerByNick = new HashMap<>();
+		List<ConfigInfo> infos = new ArrayList<>();
+		List<ConfigInfo> failed = new ArrayList<>();
+		Map<String, AllianceFileParser.Parsed> stillPresent = new HashMap<>();
+		int warningCount = 0;
 
-		JsonElement root;
-		try {
-			root = JsonParser.parseString(content);
-		} catch (JsonParseException e) {
-			throw new IOException(file.getFileName() + " jest uszkodzony: " + e.getMessage(), e);
-		}
-		if (!root.isJsonArray()) {
-			throw new IOException(file.getFileName() + " jest uszkodzony: oczekiwano tablicy JSON [ ... ]");
-		}
-
-		List<String> warnings = new ArrayList<>();
-		Map<String, AllianceEntry> parsed = new HashMap<>();
-		JsonArray array = root.getAsJsonArray();
-		for (int i = 0; i < array.size(); i++) {
-			AllianceEntry entry = parseEntry(i, array.get(i), warnings);
-			if (entry == null) continue;
-			String key = entry.nick().toLowerCase(Locale.ROOT);
-			if (parsed.containsKey(key)) {
-				warnings.add("wpis #" + i + ": gracz '" + entry.nick() + "' wystepuje drugi raz — pomijam duplikat");
-				continue;
+		for (Path file : files) {
+			String name = file.getFileName().toString();
+			AllianceFileParser.Parsed parsed;
+			String error = null;
+			try {
+				parsed = AllianceFileParser.parse(file);
+			} catch (IOException e) {
+				error = e.getMessage();
+				parsed = lastGood.get(name);
 			}
-			parsed.put(key, entry);
+			if (parsed != null) stillPresent.put(name, parsed);
+
+			List<String> warnings = new ArrayList<>();
+			int players = 0;
+			if (parsed != null) {
+				warnings.addAll(parsed.warnings());
+				for (AllianceEntry entry : parsed.entries()) {
+					String key = entry.nick().toLowerCase(Locale.ROOT);
+					String owner = ownerByNick.putIfAbsent(key, name);
+					if (owner != null) {
+						warnings.add("gracz '" + entry.nick() + "' jest tez w " + owner + " — uzywam wpisu z " + owner);
+						continue;
+					}
+					merged.put(key, entry);
+					players++;
+				}
+			}
+			ConfigInfo info = new ConfigInfo(name, players, List.copyOf(warnings), error);
+			infos.add(info);
+			if (!info.ok()) failed.add(info);
+			warningCount += warnings.size();
 		}
 
-		byNick = Map.copyOf(parsed);
-		return new LoadResult(parsed.size(), List.copyOf(warnings));
+		lastGood.clear();
+		lastGood.putAll(stillPresent);
+		byNick = Map.copyOf(merged);
+		configs = List.copyOf(infos);
+		return new ReloadResult(merged.size(), infos.size(), List.copyOf(failed), warningCount);
 	}
 
-	private static AllianceEntry parseEntry(int index, JsonElement element, List<String> warnings) {
-		String where = "wpis #" + index;
-		if (!element.isJsonObject()) {
-			warnings.add(where + ": to nie jest obiekt JSON — pomijam");
-			return null;
+	private List<Path> listConfigFiles() throws IOException {
+		List<Path> files = new ArrayList<>();
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+			for (Path p : stream) {
+				if (Files.isRegularFile(p) && isJsonName(p.getFileName().toString())) files.add(p);
+			}
 		}
-		JsonObject obj = element.getAsJsonObject();
-
-		String nick = stringField(obj, "nick");
-		if (nick == null) {
-			warnings.add(where + ": brak pola 'nick' (albo nie jest tekstem) — pomijam");
-			return null;
-		}
-		nick = nick.trim();
-		where += " (" + nick + ")";
-		if (!NICK_PATTERN.matcher(nick).matches()) {
-			warnings.add(where + ": niepoprawny nick (3-16 znakow a-z A-Z 0-9 _) — pomijam");
-			return null;
-		}
-
-		JsonElement allayEl = obj.get("allay");
-		if (!(allayEl instanceof JsonPrimitive p && p.isBoolean())) {
-			String hint = allayEl == null && obj.has("ally") ? " (w pliku jest 'ally' — poprawny klucz to 'allay')" : "";
-			warnings.add(where + ": pole 'allay' musi byc true/false" + hint + " — pomijam");
-			return null;
-		}
-		boolean allay = allayEl.getAsBoolean();
-
-		String kingdom = stringField(obj, "kingdom");
-		if (kingdom == null || kingdom.isBlank()) {
-			warnings.add(where + ": brak pola 'kingdom' (albo jest puste) — pomijam");
-			return null;
-		}
-
-		String rawStatus = stringField(obj, "status");
-		AllianceStatus status = AllianceStatus.fromDisplayName(rawStatus);
-		if (status == null) {
-			warnings.add(where + ": nieznany status '" + rawStatus + "' — traktuje jak 'Członek'");
-			status = AllianceStatus.MEMBER;
-		}
-
-		return new AllianceEntry(nick, allay, status, kingdom.trim());
+		files.sort(Comparator.comparing(p -> p.getFileName().toString(), String.CASE_INSENSITIVE_ORDER));
+		return files;
 	}
 
-	private static String stringField(JsonObject obj, String name) {
-		JsonElement el = obj.get(name);
-		if (el instanceof JsonPrimitive p && p.isString()) return p.getAsString();
-		return null;
+	private static boolean isJsonName(String name) {
+		return name.toLowerCase(Locale.ROOT).endsWith(".json");
 	}
 
-	// Hot path — wolane co klatke dla kazdego widocznego gracza. Null = gracz spoza pliku.
+	/**
+	 * Kopiuje plik do folderu configow. Plik o tej samej nazwie jest podmieniany
+	 * (tak sie aktualizuje config z bota). Uszkodzony plik jest odrzucany
+	 * (IOException) i nic nie jest kopiowane. Po dodaniu trzeba wywolac {@link #reload()}.
+	 *
+	 * @return nazwa pliku w folderze configow
+	 */
+	public synchronized String addConfig(Path source) throws IOException {
+		if (!Files.isRegularFile(source)) {
+			throw new IOException(source.getFileName() + " nie jest plikiem");
+		}
+		AllianceFileParser.parse(source);
+
+		String name = source.getFileName().toString();
+		if (!isJsonName(name)) name += ".json";
+		Files.createDirectories(dir);
+		Path target = dir.resolve(name);
+		if (!(Files.exists(target) && Files.isSameFile(source, target))) {
+			Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+		}
+		return name;
+	}
+
+	/** Usuwa config z folderu. Po usunieciu trzeba wywolac {@link #reload()}. */
+	public synchronized boolean removeConfig(String fileName) throws IOException {
+		Path target = dir.resolve(fileName).normalize();
+		if (!dir.normalize().equals(target.getParent()) || !isJsonName(fileName)) {
+			throw new IOException("Niepoprawna nazwa configu: " + fileName);
+		}
+		return Files.deleteIfExists(target);
+	}
+
+	// Hot path — wolane co klatke dla kazdego widocznego gracza. Null = gracz spoza configow.
 	public AllianceEntry get(String nick) {
 		Map<String, AllianceEntry> map = byNick;
 		if (map.isEmpty() || nick == null) return null;
 		return map.get(nick.toLowerCase(Locale.ROOT));
 	}
 
-	public List<AllianceEntry> all() {
-		List<AllianceEntry> list = new ArrayList<>(byNick.values());
-		list.sort(Comparator.comparing(AllianceEntry::nick, String.CASE_INSENSITIVE_ORDER));
-		return list;
+	public List<ConfigInfo> configs() {
+		return configs;
 	}
 
 	public int size() {

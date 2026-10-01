@@ -1,7 +1,7 @@
 package dev.servergunnik.allymod.data;
 
 /**
- * Jeden wpis z snz-sojusz.json. Etykieta "[Panstwo • Status] " jest liczona raz
+ * Jeden wpis z configu sojuszu. Etykieta "[Panstwo • Status] " jest liczona raz
  * przy wczytaniu, zeby render loop nie skladal stringow co klatke.
  */
 public final class AllianceEntry {

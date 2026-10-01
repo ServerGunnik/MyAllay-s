@@ -30,6 +30,7 @@ import dev.servergunnik.allymod.data.AllianceStore;
 import dev.servergunnik.allymod.data.Relation;
 import dev.servergunnik.allymod.data.RelationKind;
 import dev.servergunnik.allymod.data.RelationStore;
+import dev.servergunnik.allymod.gui.AllianceConfigsScreen;
 import dev.servergunnik.allymod.gui.ManageScreen;
 import dev.servergunnik.allymod.render.RenderProfiler;
 
@@ -82,9 +83,10 @@ public final class Commands {
 	private static void registerSojuszTree(CommandDispatcher<FabricClientCommandSource> dispatcher) {
 		dispatcher.register(literal("snzsojusz")
 				.then(literal("reload").executes(Commands::reloadSojusz))
+				.then(literal("gui").executes(Commands::openSojuszGui))
 				.executes(ctx -> {
 					ctx.getSource().sendFeedback(Component.translatable("allymod.command.usage.snzsojusz",
-							Allymod.alliance().size()).withStyle(ChatFormatting.GRAY));
+							Allymod.alliance().size(), Allymod.alliance().configs().size()).withStyle(ChatFormatting.GRAY));
 					return 1;
 				}));
 	}
@@ -198,21 +200,31 @@ public final class Commands {
 	}
 
 	private static int reloadSojusz(CommandContext<FabricClientCommandSource> ctx) {
-		AllianceStore alliance = Allymod.alliance();
-		AllianceStore.LoadResult result;
+		AllianceStore.ReloadResult result;
 		try {
 			result = Allymod.reloadAlliance();
 		} catch (IOException e) {
 			ctx.getSource().sendError(Component.translatable("allymod.command.sojusz.load_failed",
-					e.getMessage(), alliance.size()));
+					e.getMessage(), Allymod.alliance().size()));
 			return 0;
 		}
-		ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.done", result.loaded())
-				.withStyle(ChatFormatting.AQUA));
-		if (!result.warnings().isEmpty()) {
-			ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.skipped",
-					result.warnings().size()).withStyle(ChatFormatting.YELLOW));
+		ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.done",
+				result.players(), result.configs()).withStyle(ChatFormatting.AQUA));
+		for (AllianceStore.ConfigInfo failed : result.failed()) {
+			ctx.getSource().sendError(Component.translatable("allymod.command.sojusz.config_failed",
+					failed.fileName(), failed.error()));
 		}
+		if (result.warnings() > 0) {
+			ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.skipped",
+					result.warnings()).withStyle(ChatFormatting.YELLOW));
+		}
+		return 1;
+	}
+
+	private static int openSojuszGui(CommandContext<FabricClientCommandSource> ctx) {
+		// jak w openGui — ekran otwieramy dopiero w kolejnym ticku
+		Minecraft.getInstance().execute(() ->
+				Minecraft.getInstance().setScreenAndShow(new AllianceConfigsScreen(null)));
 		return 1;
 	}
 

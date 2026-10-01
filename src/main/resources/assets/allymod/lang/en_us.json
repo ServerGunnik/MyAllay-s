@@ -22,10 +22,11 @@
 
   "allymod.command.reload.done": "MyAllay's: reloaded %s relations.",
 
-  "allymod.command.usage.snzsojusz": "Alliance: %s players from config/snz-sojusz.json. Usage: /snzsojusz reload",
-  "allymod.command.sojusz.reload.done": "Alliance: loaded %s entries from snz-sojusz.json.",
+  "allymod.command.usage.snzsojusz": "Alliance: %s players from %s configs (config/snz-sojusz/). Usage: /snzsojusz <gui|reload>",
+  "allymod.command.sojusz.reload.done": "Alliance: loaded %s players from %s configs.",
   "allymod.command.sojusz.reload.skipped": "Skipped %s invalid entries — see the log (latest.log).",
-  "allymod.command.sojusz.load_failed": "Failed to load the alliance file: %s. Keeping the previous list (%s entries).",
+  "allymod.command.sojusz.config_failed": "Error in %s: %s — keeping the previous version of this config.",
+  "allymod.command.sojusz.load_failed": "Failed to read the config folder: %s. Keeping the previous list (%s players).",
 
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " allies: %s",
@@ -48,5 +49,30 @@
   "allymod.gui.manual_add_button": "Add",
   "allymod.gui.stats": "%s allies, %s enemies",
   "allymod.gui.list_empty": "(empty)",
-  "allymod.gui.close": "Close"
+  "allymod.gui.close": "Close",
+
+  "allymod.gui.alliances": "Alliances",
+  "allymod.alliance.gui.title": "Alliance configs",
+  "allymod.alliance.gui.summary": "%s players from %s configs",
+  "allymod.alliance.gui.empty": "No configs — click \"Add config\".",
+  "allymod.alliance.gui.players": "%s players",
+  "allymod.alliance.gui.error": "ERROR",
+  "allymod.alliance.gui.add": "Add config",
+  "allymod.alliance.gui.reload": "Reload",
+  "allymod.alliance.gui.folder": "Folder",
+  "allymod.alliance.gui.back": "Back",
+  "allymod.alliance.gui.drop_hint": "You can also drag .json files onto the game window.",
+  "allymod.alliance.gui.picker_title": "Choose alliance configs (.json)",
+  "allymod.alliance.gui.picker_filter": "Alliance configs (*.json)",
+  "allymod.alliance.gui.picker_open": "Choose file(s) in the system dialog...",
+  "allymod.alliance.gui.picker_cancelled": "No file selected.",
+  "allymod.alliance.gui.picker_failed": "File dialog unavailable — drag the file onto the game window or use \"Folder\".",
+  "allymod.alliance.gui.added": "Added %s config(s). %s players total.",
+  "allymod.alliance.gui.add_failed": "Did not add %s file(s): %s",
+  "allymod.alliance.gui.reloaded": "Reloaded: %s players from %s configs.",
+  "allymod.alliance.gui.reload_failed": "Error in %s: %s (keeping the previous version)",
+  "allymod.alliance.gui.remove_title": "Remove alliance config?",
+  "allymod.alliance.gui.remove_message": "File %s will be deleted from the config/snz-sojusz folder.",
+  "allymod.alliance.gui.removed": "Removed %s.",
+  "allymod.alliance.gui.remove_failed": "Could not remove %s: %s"
 }
