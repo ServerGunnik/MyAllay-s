@@ -5,9 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -358,7 +358,22 @@ public final class AllianceConfigsScreen extends Screen {
 		} catch (IOException e) {
 			Allymod.LOGGER.error("Nie udalo sie utworzyc {}", alliance.dir(), e);
 		}
-		Util.getPlatform().openPath(alliance.dir());
+		openInFileManager(alliance.dir());
+	}
+
+	// Bez klas Minecrafta (Util zmienia pakiet miedzy wersjami) — systemowy menedzer plikow.
+	private void openInFileManager(Path dir) {
+		String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+		String path = dir.toAbsolutePath().toString();
+		ProcessBuilder pb = os.contains("win") ? new ProcessBuilder("explorer.exe", path)
+				: os.contains("mac") ? new ProcessBuilder("open", path)
+				: new ProcessBuilder("xdg-open", path);
+		try {
+			pb.start();
+		} catch (IOException e) {
+			Allymod.LOGGER.warn("Nie udalo sie otworzyc folderu {}", path, e);
+			setStatus(Component.literal(path), COLOR_INFO);
+		}
 	}
 
 	private void setStatus(Component message, int color) {
