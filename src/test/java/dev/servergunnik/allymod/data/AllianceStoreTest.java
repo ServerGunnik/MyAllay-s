@@ -137,16 +137,29 @@ class AllianceStoreTest {
 		AllianceStore s = new AllianceStore(dir);
 		s.reload();
 
-		assertEquals("sojusz.json", s.addConfig(write(downloads, "sojusz.json", SAMPLE)));
+		assertEquals("sojusz.json", s.addConfig(write(downloads, "sojusz.json", SAMPLE), false));
 		s.reload();
 		assertEquals(4, s.size());
-		assertTrue(Files.exists(dir.resolve("sojusz.json")));
+		assertTrue(s.hasConfig("sojusz.json"));
 
 		// nowa wersja z bota pod ta sama nazwa podmienia stara
-		s.addConfig(write(downloads, "sojusz.json", SECOND));
+		s.addConfig(write(downloads, "sojusz.json", SECOND), true);
 		s.reload();
 		assertEquals(1, s.configs().size());
 		assertEquals(2, s.size());
+	}
+
+	@Test
+	void addConfigWithSameNameCanBeAddedAsNew(@TempDir Path tmp) throws IOException {
+		Path dir = tmp.resolve("snz-sojusz");
+		AllianceStore s = new AllianceStore(dir);
+		s.addConfig(write(tmp.resolve("a"), "snz-sojusz.json", SAMPLE), false);
+		String second = s.addConfig(write(tmp.resolve("b"), "snz-sojusz.json", SECOND), false);
+		s.reload();
+
+		assertEquals("snz-sojusz-2.json", second);
+		assertEquals(2, s.configs().size());
+		assertEquals(5, s.size());
 	}
 
 	@Test
@@ -156,7 +169,7 @@ class AllianceStoreTest {
 		s.reload();
 
 		Path bad = write(tmp.resolve("Pobrane"), "zly.json", "[ { ");
-		assertThrows(IOException.class, () -> s.addConfig(bad));
+		assertThrows(IOException.class, () -> s.addConfig(bad, false));
 		assertFalse(Files.exists(dir.resolve("zly.json")));
 	}
 

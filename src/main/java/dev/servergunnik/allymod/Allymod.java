@@ -13,9 +13,11 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import dev.servergunnik.allymod.cache.RelationCache;
 import dev.servergunnik.allymod.command.Commands;
+import dev.servergunnik.allymod.data.AllianceLinks;
 import dev.servergunnik.allymod.data.AllianceStore;
 import dev.servergunnik.allymod.data.RelationStore;
 import dev.servergunnik.allymod.input.AllymodKeybinds;
+import dev.servergunnik.allymod.sync.AllianceUpdater;
 
 public class Allymod implements ClientModInitializer {
 	public static final String MOD_ID = "allymod";
@@ -24,6 +26,7 @@ public class Allymod implements ClientModInitializer {
 	private static RelationStore store;
 	private static RelationCache cache;
 	private static AllianceStore alliance;
+	private static AllianceLinks allianceLinks;
 
 	public static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
@@ -39,6 +42,10 @@ public class Allymod implements ClientModInitializer {
 
 	public static AllianceStore alliance() {
 		return alliance;
+	}
+
+	public static AllianceLinks allianceLinks() {
+		return allianceLinks;
 	}
 
 	/**
@@ -86,6 +93,14 @@ public class Allymod implements ClientModInitializer {
 		} catch (IOException e) {
 			// juz zalogowane w reloadAlliance — gra startuje bez configow sojuszu
 		}
+		allianceLinks = new AllianceLinks(FabricLoader.getInstance().getConfigDir()
+				.resolve(MOD_ID).resolve("sojusz-linki.json"), alliance);
+		try {
+			allianceLinks.load();
+		} catch (IOException e) {
+			LOGGER.error("Nie udalo sie wczytac listy linkow sojuszu — start bez linkow", e);
+		}
+		AllianceUpdater.register();
 
 		cache = new RelationCache(store);
 		cache.rebuild();

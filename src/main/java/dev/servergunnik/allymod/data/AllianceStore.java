@@ -115,26 +115,42 @@ public final class AllianceStore {
 		return name.toLowerCase(Locale.ROOT).endsWith(".json");
 	}
 
+	/** Nazwa, pod jaka plik trafi do folderu configow (zawsze z koncowka .json). */
+	public static String configNameFor(Path source) {
+		String name = source.getFileName().toString();
+		return isJsonName(name) ? name : name + ".json";
+	}
+
+	public boolean hasConfig(String fileName) {
+		return Files.exists(dir.resolve(fileName));
+	}
+
 	/**
-	 * Kopiuje plik do folderu configow. Plik o tej samej nazwie jest podmieniany
-	 * (tak sie aktualizuje config z bota). Uszkodzony plik jest odrzucany
-	 * (IOException) i nic nie jest kopiowane. Po dodaniu trzeba wywolac {@link #reload()}.
+	 * Kopiuje plik do folderu configow. Uszkodzony plik jest odrzucany
+	 * (IOException) i nic nie jest kopiowane. Gdy config o tej nazwie juz jest:
+	 * replaceExisting = true podmienia go (aktualizacja z bota), false dodaje
+	 * plik jako nowy config z dopiskiem -2, -3... Po dodaniu trzeba wywolac {@link #reload()}.
 	 *
 	 * @return nazwa pliku w folderze configow
 	 */
-	public synchronized String addConfig(Path source) throws IOException {
+	public synchronized String addConfig(Path source, boolean replaceExisting) throws IOException {
 		if (!Files.isRegularFile(source)) {
 			throw new IOException(source.getFileName() + " nie jest plikiem");
 		}
 		AllianceFileParser.parse(source);
 
-		String name = source.getFileName().toString();
-		if (!isJsonName(name)) name += ".json";
+		String name = configNameFor(source);
 		Files.createDirectories(dir);
 		Path target = dir.resolve(name);
-		if (!(Files.exists(target) && Files.isSameFile(source, target))) {
-			Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+		if (Files.exists(target) && Files.isSameFile(source, target)) return name;
+		if (!replaceExisting) {
+			String base = name.substring(0, name.length() - 5);
+			for (int i = 2; Files.exists(target); i++) {
+				name = base + "-" + i + ".json";
+				target = dir.resolve(name);
+			}
 		}
+		Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
 		return name;
 	}
 

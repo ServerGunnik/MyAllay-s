@@ -22,11 +22,13 @@
 
   "allymod.command.reload.done": "MyAllay's: reloaded %s relations.",
 
-  "allymod.command.usage.snzsojusz": "Alliance: %s players from %s configs (config/snz-sojusz/). Usage: /snzsojusz <gui|reload>",
+  "allymod.command.usage.snzsojusz": "Alliance: %s players from %s configs (config/snz-sojusz/). Usage: /snzsojusz <gui|reload|link <url>|update>",
   "allymod.command.sojusz.reload.done": "Alliance: loaded %s players from %s configs.",
   "allymod.command.sojusz.reload.skipped": "Skipped %s invalid entries — see the log (latest.log).",
   "allymod.command.sojusz.config_failed": "Error in %s: %s — keeping the previous version of this config.",
   "allymod.command.sojusz.load_failed": "Failed to read the config folder: %s. Keeping the previous list (%s players).",
+  "allymod.command.sojusz.update.done": "Alliance links: %s updated, %s unchanged. %s players total.",
+  "allymod.command.sojusz.no_links": "No configs from links. Add one: /snzsojusz link <url> or the \"From link\" button.",
 
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " allies: %s",
@@ -73,5 +75,23 @@
   "allymod.alliance.gui.remove_title": "Remove alliance config?",
   "allymod.alliance.gui.remove_message": "File %s will be deleted from the config/snz-sojusz folder.",
   "allymod.alliance.gui.removed": "Removed %s.",
-  "allymod.alliance.gui.remove_failed": "Could not remove %s: %s"
+  "allymod.alliance.gui.remove_failed": "Could not remove %s: %s",
+
+  "allymod.alliance.gui.add_link": "From link",
+  "allymod.alliance.gui.players_link": "%s players · link",
+  "allymod.alliance.gui.players_link_failed": "%s players · link!",
+  "allymod.alliance.gui.conflict_title": "A config with this name already exists",
+  "allymod.alliance.gui.conflict_message": "You already have: %s. Replace the old config (new version of the same alliance) or add as new (another alliance)?",
+  "allymod.alliance.gui.conflict_replace": "Replace",
+  "allymod.alliance.gui.conflict_add_new": "Add as new",
+  "allymod.alliance.gui.link_downloading": "Downloading config from link...",
+  "allymod.alliance.gui.link_added": "Added %s from link. %s players total. Updates every 10 min.",
+  "allymod.alliance.gui.link_added_discord": "Added %s, but Discord links expire after ~24h — ask for a permanent link.",
+  "allymod.alliance.gui.link_failed": "Link not added: %s",
+  "allymod.alliance.gui.link_refresh_failed": "Could not download %s — keeping the previous version",
+  "allymod.alliance.link.title": "Alliance config from link",
+  "allymod.alliance.link.hint": "Paste a link (Ctrl+V). The config will update itself every 10 min.",
+  "allymod.alliance.link.add": "Add",
+  "allymod.alliance.link.cancel": "Cancel",
+  "allymod.alliance.link.discord_warning": "Note: Discord attachment links expire after ~24h. Auto-updates need a permanent link (e.g. from the bot or GitHub)."
 }

@@ -26,6 +26,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 import dev.servergunnik.allymod.Allymod;
 import dev.servergunnik.allymod.cache.RelationCache;
+import dev.servergunnik.allymod.data.AllianceLinks;
 import dev.servergunnik.allymod.data.AllianceStore;
 import dev.servergunnik.allymod.data.Relation;
 import dev.servergunnik.allymod.data.RelationKind;
@@ -33,6 +34,7 @@ import dev.servergunnik.allymod.data.RelationStore;
 import dev.servergunnik.allymod.gui.AllianceConfigsScreen;
 import dev.servergunnik.allymod.gui.ManageScreen;
 import dev.servergunnik.allymod.render.RenderProfiler;
+import dev.servergunnik.allymod.sync.AllianceUpdater;
 
 public final class Commands {
 	private Commands() {}
@@ -84,6 +86,10 @@ public final class Commands {
 		dispatcher.register(literal("snzsojusz")
 				.then(literal("reload").executes(Commands::reloadSojusz))
 				.then(literal("gui").executes(Commands::openSojuszGui))
+				.then(literal("update").executes(Commands::updateSojuszLinks))
+				.then(literal("link")
+						.then(argument("url", StringArgumentType.greedyString())
+								.executes(Commands::addSojuszLink)))
 				.executes(ctx -> {
 					ctx.getSource().sendFeedback(Component.translatable("allymod.command.usage.snzsojusz",
 							Allymod.alliance().size(), Allymod.alliance().configs().size()).withStyle(ChatFormatting.GRAY));
@@ -218,6 +224,42 @@ public final class Commands {
 			ctx.getSource().sendFeedback(Component.translatable("allymod.command.sojusz.reload.skipped",
 					result.warnings()).withStyle(ChatFormatting.YELLOW));
 		}
+		return 1;
+	}
+
+	private static int addSojuszLink(CommandContext<FabricClientCommandSource> ctx) {
+		String url = StringArgumentType.getString(ctx, "url");
+		FabricClientCommandSource src = ctx.getSource();
+		src.sendFeedback(Component.translatable("allymod.alliance.gui.link_downloading").withStyle(ChatFormatting.GRAY));
+		AllianceUpdater.addLink(url, summary -> {
+			if (summary.link() == null) {
+				src.sendError(Component.translatable("allymod.alliance.gui.link_failed", summary.errors().get(0)));
+				return;
+			}
+			src.sendFeedback(Component.translatable("allymod.alliance.gui.link_added", summary.link().file(),
+					Allymod.alliance().size()).withStyle(ChatFormatting.AQUA));
+			if (AllianceLinks.isExpiringDiscordLink(summary.link().url())) {
+				src.sendFeedback(Component.translatable("allymod.alliance.link.discord_warning")
+						.withStyle(ChatFormatting.YELLOW));
+			}
+		});
+		return 1;
+	}
+
+	private static int updateSojuszLinks(CommandContext<FabricClientCommandSource> ctx) {
+		FabricClientCommandSource src = ctx.getSource();
+		if (Allymod.allianceLinks().all().isEmpty()) {
+			src.sendError(Component.translatable("allymod.command.sojusz.no_links"));
+			return 0;
+		}
+		src.sendFeedback(Component.translatable("allymod.alliance.gui.link_downloading").withStyle(ChatFormatting.GRAY));
+		AllianceUpdater.refreshAll(summary -> {
+			src.sendFeedback(Component.translatable("allymod.command.sojusz.update.done",
+					summary.updated(), summary.unchanged(), Allymod.alliance().size()).withStyle(ChatFormatting.AQUA));
+			for (String error : summary.errors()) {
+				src.sendError(Component.translatable("allymod.alliance.gui.link_refresh_failed", error));
+			}
+		});
 		return 1;
 	}
 

@@ -22,11 +22,13 @@
 
   "allymod.command.reload.done": "MyAllay's: przeladowano %s relacji.",
 
-  "allymod.command.usage.snzsojusz": "Sojusz: %s graczy z %s configow (config/snz-sojusz/). Uzycie: /snzsojusz <gui|reload>",
+  "allymod.command.usage.snzsojusz": "Sojusz: %s graczy z %s configow (config/snz-sojusz/). Uzycie: /snzsojusz <gui|reload|link <url>|update>",
   "allymod.command.sojusz.reload.done": "Sojusz: wczytano %s graczy z %s configow.",
   "allymod.command.sojusz.reload.skipped": "Pominieto %s blednych wpisow — szczegoly w logu (latest.log).",
   "allymod.command.sojusz.config_failed": "Blad w %s: %s — zostala poprzednia wersja tego configu.",
   "allymod.command.sojusz.load_failed": "Nie udalo sie odczytac folderu configow: %s. Zostaje poprzednia lista (%s graczy).",
+  "allymod.command.sojusz.update.done": "Linki sojuszu: zaktualizowano %s, bez zmian %s. Razem %s graczy.",
+  "allymod.command.sojusz.no_links": "Nie ma configow z linku. Dodaj: /snzsojusz link <url> albo przycisk \"Z linku\".",
 
   "allymod.command.info.title": "MyAllay's — %s",
   "allymod.command.info.allies": " sojusznicy: %s",
@@ -73,5 +75,23 @@
   "allymod.alliance.gui.remove_title": "Usunac config sojuszu?",
   "allymod.alliance.gui.remove_message": "Plik %s zostanie usuniety z folderu config/snz-sojusz.",
   "allymod.alliance.gui.removed": "Usunieto %s.",
-  "allymod.alliance.gui.remove_failed": "Nie udalo sie usunac %s: %s"
+  "allymod.alliance.gui.remove_failed": "Nie udalo sie usunac %s: %s",
+
+  "allymod.alliance.gui.add_link": "Z linku",
+  "allymod.alliance.gui.players_link": "%s graczy · link",
+  "allymod.alliance.gui.players_link_failed": "%s graczy · link!",
+  "allymod.alliance.gui.conflict_title": "Config o tej nazwie juz jest",
+  "allymod.alliance.gui.conflict_message": "Juz masz: %s. Podmienic stary config (nowa wersja tego samego sojuszu) czy dodac jako nowy (inny sojusz)?",
+  "allymod.alliance.gui.conflict_replace": "Podmien",
+  "allymod.alliance.gui.conflict_add_new": "Dodaj jako nowy",
+  "allymod.alliance.gui.link_downloading": "Pobieranie configu z linku...",
+  "allymod.alliance.gui.link_added": "Dodano %s z linku. Razem %s graczy. Aktualizacja co 10 min.",
+  "allymod.alliance.gui.link_added_discord": "Dodano %s, ale link z Discorda wygasa po ~24h — popros o staly link.",
+  "allymod.alliance.gui.link_failed": "Nie dodano linku: %s",
+  "allymod.alliance.gui.link_refresh_failed": "Nie pobrano %s — zostala poprzednia wersja",
+  "allymod.alliance.link.title": "Config sojuszu z linku",
+  "allymod.alliance.link.hint": "Wklej link (Ctrl+V). Config bedzie sam sie aktualizowal co 10 min.",
+  "allymod.alliance.link.add": "Dodaj",
+  "allymod.alliance.link.cancel": "Anuluj",
+  "allymod.alliance.link.discord_warning": "Uwaga: linki do zalacznikow Discorda wygasaja po ~24h. Do aktualizacji potrzebny jest staly link (np. z bota albo GitHuba)."
 }

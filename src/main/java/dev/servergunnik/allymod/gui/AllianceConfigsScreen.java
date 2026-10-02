@@ -17,11 +17,13 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 import dev.servergunnik.allymod.Allymod;
+import dev.servergunnik.allymod.data.AllianceLinks;
 import dev.servergunnik.allymod.data.AllianceStore;
+import dev.servergunnik.allymod.sync.AllianceUpdater;
 
 /**
- * Lista configow sojuszu (config/snz-sojusz/*.json): dodawanie z pliku,
- * usuwanie, przeladowanie. Pliki mozna tez przeciagnac na okno gry.
+ * Lista configow sojuszu (config/snz-sojusz/*.json): dodawanie z pliku albo
+ * z linku, usuwanie, przeladowanie. Pliki mozna tez przeciagnac na okno gry.
  */
 public final class AllianceConfigsScreen extends Screen {
 	private static final int PANEL_W = 340;
@@ -29,11 +31,16 @@ public final class AllianceConfigsScreen extends Screen {
 	private static final int MAX_ROWS = 6;
 	private static final int ROW_H = 22;
 	private static final int TINT = 0xB0000000;
+	private static final int COLOR_OK = 0xFF33DD33;
+	private static final int COLOR_WARN = 0xFFDDBB33;
+	private static final int COLOR_ERROR = 0xFFDD3333;
+	private static final int COLOR_INFO = 0xFFAAAAAA;
+	private static final int COLOR_LINK = 0xFF55CCEE;
 
 	private final Screen parent;
 	private int page = 0;
 	private Component status = null;
-	private int statusColor = 0xFFAAAAAA;
+	private int statusColor = COLOR_INFO;
 	private volatile boolean pickerOpen = false;
 
 	public AllianceConfigsScreen(Screen parent) {
@@ -81,19 +88,23 @@ public final class AllianceConfigsScreen extends Screen {
 		addRenderableWidget(Button.builder(
 				Component.translatable("allymod.alliance.gui.add").withStyle(ChatFormatting.GREEN),
 				b -> openFilePicker()
-		).bounds(panelX + 10, buttonsY, 80, 20).build());
+		).bounds(panelX + 10, buttonsY, 70, 20).build());
+		addRenderableWidget(Button.builder(
+				Component.translatable("allymod.alliance.gui.add_link").withStyle(ChatFormatting.AQUA),
+				b -> Minecraft.getInstance().setScreenAndShow(new AllianceLinkScreen(this))
+		).bounds(panelX + 85, buttonsY, 60, 20).build());
 		addRenderableWidget(Button.builder(
 				Component.translatable("allymod.alliance.gui.reload"),
 				b -> reload()
-		).bounds(panelX + 95, buttonsY, 70, 20).build());
+		).bounds(panelX + 150, buttonsY, 60, 20).build());
 		addRenderableWidget(Button.builder(
 				Component.translatable("allymod.alliance.gui.folder"),
 				b -> openFolder()
-		).bounds(panelX + 170, buttonsY, 70, 20).build());
+		).bounds(panelX + 215, buttonsY, 50, 20).build());
 		addRenderableWidget(Button.builder(
 				Component.translatable("allymod.alliance.gui.back"),
 				b -> this.onClose()
-		).bounds(panelX + PANEL_W - 90, buttonsY, 80, 20).build());
+		).bounds(panelX + 270, buttonsY, 60, 20).build());
 	}
 
 	@Override
@@ -110,6 +121,7 @@ public final class AllianceConfigsScreen extends Screen {
 		int firstRowY = panelY + 40;
 		Font font = this.font;
 		AllianceStore alliance = Allymod.alliance();
+		AllianceLinks links = Allymod.allianceLinks();
 		List<AllianceStore.ConfigInfo> configs = alliance.configs();
 
 		g.fill(panelX, panelY, panelX + PANEL_W, panelY + PANEL_H, 0xE01a1a1a);
@@ -117,11 +129,11 @@ public final class AllianceConfigsScreen extends Screen {
 		g.centeredText(font,
 				Component.translatable("allymod.alliance.gui.summary", alliance.size(), configs.size())
 						.withStyle(ChatFormatting.GRAY),
-				panelX + PANEL_W / 2, panelY + 22, 0xFFAAAAAA);
+				panelX + PANEL_W / 2, panelY + 22, COLOR_INFO);
 
 		int pages = pageCount(configs.size());
 		if (pages > 1) {
-			g.text(font, (page + 1) + "/" + pages, panelX + PANEL_W - 80, panelY + 21, 0xFFAAAAAA);
+			g.text(font, (page + 1) + "/" + pages, panelX + PANEL_W - 80, panelY + 21, COLOR_INFO);
 		}
 
 		if (configs.isEmpty()) {
@@ -134,14 +146,25 @@ public final class AllianceConfigsScreen extends Screen {
 			AllianceStore.ConfigInfo info = configs.get(index);
 			int y = firstRowY + i * ROW_H + 6;
 
-			Component right = info.ok()
-					? Component.translatable("allymod.alliance.gui.players", info.players())
-					: Component.translatable("allymod.alliance.gui.error");
-			int rightColor = !info.ok() ? 0xFFDD3333 : info.warnings().isEmpty() ? 0xFFAAAAAA : 0xFFDDBB33;
+			boolean isLink = links.find(info.fileName()) != null;
+			AllianceLinks.LinkStatus linkStatus = isLink ? links.status(info.fileName()) : null;
+			boolean linkFailed = linkStatus != null && linkStatus.error() != null;
+
+			Component right;
+			if (!info.ok()) {
+				right = Component.translatable("allymod.alliance.gui.error");
+			} else if (isLink) {
+				right = Component.translatable(linkFailed ? "allymod.alliance.gui.players_link_failed"
+						: "allymod.alliance.gui.players_link", info.players());
+			} else {
+				right = Component.translatable("allymod.alliance.gui.players", info.players());
+			}
+			int rightColor = !info.ok() ? COLOR_ERROR
+					: linkFailed || !info.warnings().isEmpty() ? COLOR_WARN : COLOR_INFO;
 			int rightX = panelX + PANEL_W - 34 - font.width(right);
 			g.text(font, right, rightX, y, rightColor);
 
-			int nameColor = info.ok() ? 0xFFEEEEEE : 0xFFDD3333;
+			int nameColor = !info.ok() ? COLOR_ERROR : isLink ? COLOR_LINK : 0xFFEEEEEE;
 			g.text(font, truncate(font, info.fileName(), rightX - panelX - 20), panelX + 10, y, nameColor);
 		}
 
@@ -170,7 +193,7 @@ public final class AllianceConfigsScreen extends Screen {
 	private void openFilePicker() {
 		if (pickerOpen) return;
 		pickerOpen = true;
-		setStatus(Component.translatable("allymod.alliance.gui.picker_open"), 0xFFAAAAAA);
+		setStatus(Component.translatable("allymod.alliance.gui.picker_open"), COLOR_INFO);
 		String title = Component.translatable("allymod.alliance.gui.picker_title").getString();
 		String filter = Component.translatable("allymod.alliance.gui.picker_filter").getString();
 
@@ -187,9 +210,9 @@ public final class AllianceConfigsScreen extends Screen {
 			Minecraft.getInstance().execute(() -> {
 				pickerOpen = false;
 				if (result == null) {
-					setStatus(Component.translatable("allymod.alliance.gui.picker_failed"), 0xFFDD3333);
+					setStatus(Component.translatable("allymod.alliance.gui.picker_failed"), COLOR_ERROR);
 				} else if (result.isEmpty()) {
-					setStatus(Component.translatable("allymod.alliance.gui.picker_cancelled"), 0xFFAAAAAA);
+					setStatus(Component.translatable("allymod.alliance.gui.picker_cancelled"), COLOR_INFO);
 				} else {
 					importFiles(result);
 				}
@@ -199,13 +222,39 @@ public final class AllianceConfigsScreen extends Screen {
 		thread.start();
 	}
 
+	/**
+	 * Gdy ktorys plik ma nazwe istniejacego configu (bot zwykle nazywa wszystkie
+	 * tak samo), pyta: podmienic stary config czy dodac jako nowy.
+	 */
 	private void importFiles(List<Path> paths) {
+		AllianceStore alliance = Allymod.alliance();
+		List<String> conflicts = new ArrayList<>();
+		for (Path path : paths) {
+			String name = AllianceStore.configNameFor(path);
+			if (alliance.hasConfig(name)) conflicts.add(name);
+		}
+		if (conflicts.isEmpty()) {
+			copyFiles(paths, false);
+			return;
+		}
+		Minecraft mc = Minecraft.getInstance();
+		mc.setScreenAndShow(new ConfirmScreen(replace -> {
+			mc.setScreenAndShow(this);
+			copyFiles(paths, replace);
+		},
+				Component.translatable("allymod.alliance.gui.conflict_title"),
+				Component.translatable("allymod.alliance.gui.conflict_message", String.join(", ", conflicts)),
+				Component.translatable("allymod.alliance.gui.conflict_replace"),
+				Component.translatable("allymod.alliance.gui.conflict_add_new")));
+	}
+
+	private void copyFiles(List<Path> paths, boolean replaceExisting) {
 		AllianceStore alliance = Allymod.alliance();
 		int added = 0;
 		List<String> errors = new ArrayList<>();
 		for (Path path : paths) {
 			try {
-				String name = alliance.addConfig(path);
+				String name = alliance.addConfig(path, replaceExisting);
 				Allymod.LOGGER.info("Dodano config sojuszu {} (z {})", name, path);
 				added++;
 			} catch (IOException e) {
@@ -216,26 +265,55 @@ public final class AllianceConfigsScreen extends Screen {
 		if (added > 0) reloadQuietly();
 
 		if (errors.isEmpty()) {
-			setStatus(Component.translatable("allymod.alliance.gui.added", added, alliance.size()), 0xFF33DD33);
+			setStatus(Component.translatable("allymod.alliance.gui.added", added, alliance.size()), COLOR_OK);
 		} else {
-			setStatus(Component.translatable("allymod.alliance.gui.add_failed", errors.size(), errors.get(0)), 0xFFDD3333);
+			setStatus(Component.translatable("allymod.alliance.gui.add_failed", errors.size(), errors.get(0)), COLOR_ERROR);
 		}
 		rebuildWidgets();
 	}
 
-	private void reload() {
-		AllianceStore.ReloadResult result = reloadQuietly();
-		if (result != null) {
-			if (result.failed().isEmpty()) {
-				setStatus(Component.translatable("allymod.alliance.gui.reloaded", result.players(), result.configs()),
-						0xFF33DD33);
+	/** Wolane z {@link AllianceLinkScreen} po wpisaniu linku. */
+	void addLink(String url) {
+		setStatus(Component.translatable("allymod.alliance.gui.link_downloading"), COLOR_INFO);
+		AllianceUpdater.addLink(url, summary -> {
+			if (summary.link() == null) {
+				setStatus(Component.translatable("allymod.alliance.gui.link_failed", summary.errors().get(0)), COLOR_ERROR);
+			} else if (AllianceLinks.isExpiringDiscordLink(summary.link().url())) {
+				setStatus(Component.translatable("allymod.alliance.gui.link_added_discord", summary.link().file()), COLOR_WARN);
 			} else {
-				AllianceStore.ConfigInfo first = result.failed().get(0);
-				setStatus(Component.translatable("allymod.alliance.gui.reload_failed", first.fileName(), first.error()),
-						0xFFDD3333);
+				setStatus(Component.translatable("allymod.alliance.gui.link_added", summary.link().file(),
+						Allymod.alliance().size()), COLOR_OK);
 			}
+			rebuildWidgets();
+		});
+	}
+
+	private void reload() {
+		if (Allymod.allianceLinks().all().isEmpty()) {
+			showReloadResult(reloadQuietly(), List.of());
+			rebuildWidgets();
+			return;
 		}
-		rebuildWidgets();
+		// najpierw pobierz nowe wersje z linkow, potem przeladuj wszystko
+		setStatus(Component.translatable("allymod.alliance.gui.link_downloading"), COLOR_INFO);
+		AllianceUpdater.refreshAll(summary -> {
+			showReloadResult(reloadQuietly(), summary.errors());
+			rebuildWidgets();
+		});
+	}
+
+	private void showReloadResult(AllianceStore.ReloadResult result, List<String> linkErrors) {
+		if (result == null) return;
+		if (!result.failed().isEmpty()) {
+			AllianceStore.ConfigInfo first = result.failed().get(0);
+			setStatus(Component.translatable("allymod.alliance.gui.reload_failed", first.fileName(), first.error()),
+					COLOR_ERROR);
+		} else if (!linkErrors.isEmpty()) {
+			setStatus(Component.translatable("allymod.alliance.gui.link_refresh_failed", linkErrors.get(0)), COLOR_WARN);
+		} else {
+			setStatus(Component.translatable("allymod.alliance.gui.reloaded", result.players(), result.configs()),
+					COLOR_OK);
+		}
 	}
 
 	private AllianceStore.ReloadResult reloadQuietly() {
@@ -243,7 +321,7 @@ public final class AllianceConfigsScreen extends Screen {
 			return Allymod.reloadAlliance();
 		} catch (IOException e) {
 			setStatus(Component.translatable("allymod.command.sojusz.load_failed", e.getMessage(), Allymod.alliance().size()),
-					0xFFDD3333);
+					COLOR_ERROR);
 			return null;
 		}
 	}
@@ -260,15 +338,17 @@ public final class AllianceConfigsScreen extends Screen {
 
 	private void removeConfig(String fileName) {
 		try {
+			// najpierw link — inaczej nastepne odswiezenie pobraloby config z powrotem
+			Allymod.allianceLinks().remove(fileName);
 			Allymod.alliance().removeConfig(fileName);
 			Allymod.LOGGER.info("Usunieto config sojuszu {}", fileName);
 		} catch (IOException e) {
 			Allymod.LOGGER.error("Nie udalo sie usunac configu {}", fileName, e);
-			setStatus(Component.translatable("allymod.alliance.gui.remove_failed", fileName, e.getMessage()), 0xFFDD3333);
+			setStatus(Component.translatable("allymod.alliance.gui.remove_failed", fileName, e.getMessage()), COLOR_ERROR);
 			return;
 		}
 		reloadQuietly();
-		setStatus(Component.translatable("allymod.alliance.gui.removed", fileName), 0xFFAAAAAA);
+		setStatus(Component.translatable("allymod.alliance.gui.removed", fileName), COLOR_INFO);
 	}
 
 	private void openFolder() {
