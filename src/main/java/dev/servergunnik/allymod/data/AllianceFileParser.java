@@ -25,6 +25,7 @@ import com.google.gson.JsonPrimitive;
  */
 public final class AllianceFileParser {
 	public static final Pattern NICK_PATTERN = Pattern.compile("[A-Za-z0-9_]{3,16}");
+	public static final int MAX_KINGDOM_LENGTH = 24;
 
 	/** Poprawne wpisy w kolejnosci z pliku (bez duplikatow) + opisy pominietych. */
 	public record Parsed(List<AllianceEntry> entries, List<String> warnings) {}
@@ -100,8 +101,8 @@ public final class AllianceFileParser {
 		}
 		boolean allay = allayEl.getAsBoolean();
 
-		String kingdom = stringField(obj, "kingdom");
-		if (kingdom == null || kingdom.isBlank()) {
+		String kingdom = cleanKingdom(stringField(obj, "kingdom"));
+		if (kingdom == null || kingdom.isEmpty()) {
 			warnings.add(where + ": brak pola 'kingdom' (albo jest puste) — pomijam");
 			return null;
 		}
@@ -113,7 +114,31 @@ public final class AllianceFileParser {
 			status = AllianceStatus.MEMBER;
 		}
 
-		return new AllianceEntry(nick, allay, status, kingdom.trim());
+		return new AllianceEntry(nick, allay, status, kingdom);
+	}
+
+	/**
+	 * Usuwa kody formatowania Minecrafta (§ + znak) i znaki sterujace, scala
+	 * spacje i przycina zbyt dlugie nazwy — inaczej nazwa z bota moglaby
+	 * zmienic kolor/styl nametagu albo rozciagnac liste TAB.
+	 */
+	static String cleanKingdom(String raw) {
+		if (raw == null) return null;
+		StringBuilder sb = new StringBuilder(raw.length());
+		for (int i = 0; i < raw.length(); i++) {
+			char c = raw.charAt(i);
+			if (c == '\u00A7') {
+				i++; // pomin tez znak kodu
+				continue;
+			}
+			sb.append(Character.isISOControl(c) || Character.isWhitespace(c) ? ' ' : c);
+		}
+		String cleaned = sb.toString().trim().replaceAll(" {2,}", " ");
+		if (cleaned.codePointCount(0, cleaned.length()) > MAX_KINGDOM_LENGTH) {
+			int end = cleaned.offsetByCodePoints(0, MAX_KINGDOM_LENGTH - 1);
+			cleaned = cleaned.substring(0, end).trim() + "…";
+		}
+		return cleaned;
 	}
 
 	private static String stringField(JsonObject obj, String name) {

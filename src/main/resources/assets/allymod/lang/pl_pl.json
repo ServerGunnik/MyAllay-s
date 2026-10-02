@@ -36,7 +36,6 @@
   "allymod.command.debug.on": "MyAllay's fps-debug: ON — sredni czas mixinu w logu co ~10s",
   "allymod.command.debug.off": "MyAllay's fps-debug: OFF",
 
-  "allymod.key.category": "MyAllay's",
   "allymod.key.gui": "Otworz menu MyAllay's",
 
   "allymod.gui.title": "MyAllay's",

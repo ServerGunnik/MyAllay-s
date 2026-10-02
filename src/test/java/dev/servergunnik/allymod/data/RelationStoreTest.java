@@ -107,4 +107,24 @@ class RelationStoreTest {
 			assertTrue(expected.getMessage().contains("uszkodzony"));
 		}
 	}
+
+	@Test
+	void corruptedJsonKeepsPreviousListAndMakesBackup(@TempDir Path dir) throws IOException {
+		Path file = dir.resolve("relations.json");
+		UUID uuid = UUID.randomUUID();
+		RelationStore s = new RelationStore(file);
+		s.load();
+		s.put(uuid, "Notch", RelationKind.ALLY);
+		s.save();
+
+		Files.writeString(file, "{ to nie jest json ");
+		try {
+			s.load();
+			assertTrue(false, "Powinien poleciec IOException");
+		} catch (IOException expected) {
+			assertTrue(expected.getMessage().contains("uszkodzony"));
+		}
+		assertTrue(s.isAlly(uuid));
+		assertEquals("{ to nie jest json ", Files.readString(s.backupFile()));
+	}
 }

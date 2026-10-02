@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.JsonParseException;
 
 public final class RelationStore {
 	private static final int SCHEMA_VERSION = 1;
@@ -33,20 +34,38 @@ public final class RelationStore {
 		return file;
 	}
 
+	/**
+	 * Wczytuje plik. Przy uszkodzonym pliku rzuca IOException, zostawia
+	 * poprzednio wczytana liste i kopiuje zepsuty plik do relations.json.broken
+	 * — kolejny zapis nadpisze relations.json, wiec bez kopii dane by przepadly.
+	 */
 	public synchronized void load() throws IOException {
-		byUuid.clear();
-		if (!Files.exists(file)) return;
+		if (!Files.exists(file)) {
+			byUuid.clear();
+			return;
+		}
 
+		Map<UUID, Relation> loaded = new HashMap<>();
 		try (Reader reader = Files.newBufferedReader(file)) {
 			FileFormat format = GSON.fromJson(reader, FileFormat.class);
-			if (format == null || format.relations == null) return;
-			for (Relation r : format.relations) {
-				if (r == null || r.uuid() == null || r.kind() == null) continue;
-				byUuid.put(r.uuid(), r);
+			if (format != null && format.relations != null) {
+				for (Relation r : format.relations) {
+					if (r == null || r.uuid() == null || r.kind() == null) continue;
+					loaded.put(r.uuid(), r);
+				}
 			}
-		} catch (JsonSyntaxException e) {
-			throw new IOException("relations.json jest uszkodzony: " + e.getMessage(), e);
+		} catch (JsonParseException e) {
+			Path backup = backupFile();
+			Files.copy(file, backup, StandardCopyOption.REPLACE_EXISTING);
+			throw new IOException("relations.json jest uszkodzony (kopia: " + backup.getFileName() + "): "
+					+ e.getMessage(), e);
 		}
+		byUuid.clear();
+		byUuid.putAll(loaded);
+	}
+
+	public Path backupFile() {
+		return file.resolveSibling(file.getFileName() + ".broken");
 	}
 
 	public synchronized void save() throws IOException {

@@ -215,4 +215,12 @@ class AllianceStoreTest {
 		IOException e = assertThrows(IOException.class, () -> AllianceFileParser.parse(file));
 		assertTrue(e.getMessage().contains("UTF-8"));
 	}
+
+	@Test
+	void kingdomIsSanitized() {
+		assertEquals("Polska", AllianceFileParser.cleanKingdom("§c§lPolska§r"));
+		assertEquals("Nowa Kraina", AllianceFileParser.cleanKingdom("  Nowa \t\n Kraina "));
+		assertEquals("Królestwo Bardzo Długie…", AllianceFileParser.cleanKingdom("Królestwo Bardzo Długiej Nazwy Państwa"));
+		assertEquals("", AllianceFileParser.cleanKingdom("§a"));
+	}
 }

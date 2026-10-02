@@ -14,3 +14,6 @@ run/
 # OS
 .DS_Store
 Thumbs.db
+
+# Eclipse / VS Code (Java) output
+bin/
