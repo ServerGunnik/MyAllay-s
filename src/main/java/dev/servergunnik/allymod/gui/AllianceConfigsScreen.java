@@ -6,8 +6,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.lwjgl.sdl.SDLError;
+import org.lwjgl.sdl.SDLMisc;
+
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -171,32 +173,26 @@ public final class AllianceConfigsScreen extends Screen {
 		if (pickerOpen) return;
 		pickerOpen = true;
 		setStatus(Component.translatable("allymod.alliance.gui.picker_open"), 0xFFAAAAAA);
-		String title = Component.translatable("allymod.alliance.gui.picker_title").getString();
 		String filter = Component.translatable("allymod.alliance.gui.picker_filter").getString();
 
-		// Okno systemowe blokuje watek — trzymamy je poza render threadem, zeby gra nie zamarzla.
-		Thread thread = new Thread(() -> {
-			List<Path> picked;
-			try {
-				picked = JsonFilePicker.pickJsonFiles(title, filter);
-			} catch (Throwable t) {
-				Allymod.LOGGER.error("Okno wyboru pliku nie zadzialalo", t);
-				picked = null;
-			}
-			List<Path> result = picked;
-			Minecraft.getInstance().execute(() -> {
-				pickerOpen = false;
-				if (result == null) {
-					setStatus(Component.translatable("allymod.alliance.gui.picker_failed"), 0xFFDD3333);
-				} else if (result.isEmpty()) {
-					setStatus(Component.translatable("allymod.alliance.gui.picker_cancelled"), 0xFFAAAAAA);
-				} else {
-					importFiles(result);
-				}
-			});
-		}, "MyAllay's file picker");
-		thread.setDaemon(true);
-		thread.start();
+		// Okno SDL jest asynchroniczne — wynik moze przyjsc z innego watku, wiec wracamy na watek gry.
+		try {
+			JsonFilePicker.pickJsonFiles(filter, result -> Minecraft.getInstance().execute(() -> onFilesPicked(result)));
+		} catch (Throwable t) {
+			Allymod.LOGGER.error("Okno wyboru pliku nie zadzialalo", t);
+			onFilesPicked(null);
+		}
+	}
+
+	private void onFilesPicked(List<Path> result) {
+		pickerOpen = false;
+		if (result == null) {
+			setStatus(Component.translatable("allymod.alliance.gui.picker_failed"), 0xFFDD3333);
+		} else if (result.isEmpty()) {
+			setStatus(Component.translatable("allymod.alliance.gui.picker_cancelled"), 0xFFAAAAAA);
+		} else {
+			importFiles(result);
+		}
 	}
 
 	private void importFiles(List<Path> paths) {
@@ -278,7 +274,10 @@ public final class AllianceConfigsScreen extends Screen {
 		} catch (IOException e) {
 			Allymod.LOGGER.error("Nie udalo sie utworzyc {}", alliance.dir(), e);
 		}
-		Util.getPlatform().openPath(alliance.dir());
+		// Od 26.3 Util nie ma openPath — SDL otwiera folder w systemowym menedzerze plikow.
+		if (!SDLMisc.SDL_OpenURL(alliance.dir().toAbsolutePath().toUri().toString())) {
+			Allymod.LOGGER.error("Nie udalo sie otworzyc folderu {}: {}", alliance.dir(), SDLError.SDL_GetError());
+		}
 	}
 
 	private void setStatus(Component message, int color) {

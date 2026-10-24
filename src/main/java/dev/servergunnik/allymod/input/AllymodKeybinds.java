@@ -4,8 +4,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 
 import net.minecraft.client.KeyMapping;
 
-import org.lwjgl.glfw.GLFW;
-
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 
@@ -20,8 +18,8 @@ public final class AllymodKeybinds {
 	public static void register() {
 		openGui = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"allymod.key.gui",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_F6,
+				InputConstants.Type.KEYBOARD,
+				InputConstants.KEY_F6,
 				KeyMapping.Category.MISC
 		));
 		Allymod.LOGGER.info("Keybind zarejestrowany: '{}' -> {} (Options -> Controls -> Miscellaneous)",
